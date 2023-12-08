@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
@@ -26,20 +25,24 @@ class MainPage extends StatefulWidget {
   _MainPageState createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
-  List<Athletics> parseSaints = [];
-  int selectedTabIndex = 0;
+class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<Athletics> menSoccer = [];
+  List<Athletics> womenSoccer = [];
 
   @override
   void initState() {
     super.initState();
-    fetchData();
+    _tabController = TabController(length: 2, vsync: this);
+    fetchData(0); // Fetch data for the first tab initially
+    fetchData(1);
   }
 
-  Future<void> fetchData() async {
-    String url = selectedTabIndex == 0
+  Future<void> fetchData(int tabIndex) async {
+    String url = tabIndex == 0
         ? "https://csssaints.com/sports/mens-soccer/roster"
         : "https://csssaints.com/sports/womens-soccer/roster";
+
     try {
       var response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -60,7 +63,11 @@ class _MainPageState extends State<MainPage> {
           tempList.add(Athletics(imgUrl: finalUrl, title: title, number: number));
         }
         setState(() {
-          parseSaints = tempList;
+          if (tabIndex == 0) {
+            menSoccer = tempList;
+          } else {
+            womenSoccer = tempList;
+          }
         });
       } else {
         print('Failed to load data. Status code: ${response.statusCode}');
@@ -74,10 +81,29 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Saints Athletics'),
+        title: const Text('Saints Athletics'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Men\'s Soccer'),
+            Tab(text: 'Women\'s Soccer'),
+          ],
+        ),
       ),
-      body: Saints(parseAthletics: parseSaints),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          Saints(parseAthletics: menSoccer),
+          Saints(parseAthletics: womenSoccer),
+        ],
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 }
 
@@ -111,21 +137,14 @@ class AthleticsItem extends StatelessWidget {
           Image.network(
             athletics.imgUrl,
             width: double.infinity,
-            height: 200,
-            fit: BoxFit.cover,
+            height: 100, // Adjust height as needed
+            fit: BoxFit.scaleDown,
           ),
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.only(top: 12.0, left: 12.0, right: 12.0), // Removed bottom padding
             child: Text(
               athletics.title,
-              style: TextStyle(fontSize: 18, color: Colors.white),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Text(
-              athletics.number,
-              style: TextStyle(fontSize: 16, color: Colors.white),
+              style: const TextStyle(fontSize: 18, color: Colors.black), // Style as needed
             ),
           ),
         ],
